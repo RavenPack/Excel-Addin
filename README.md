@@ -18,6 +18,8 @@ There are two ways to use the Excel Plugin.
 
 Once the Addin has been correctly run, you will see the RavenPack tab on your ribbon. If you click on this, you will be presented with a number of different options that will manipulate the data in your spreadsheet.
 
+[[https://github.com/RavenPack/Excel-Addin/raw/master/resources/excel_ribbon.png|alt=RavenPack Excel Ribbon]]
+
 * Server Status: Check that you are able to correctly connect to the RavenPack REST API.
 * Set API_KEY: Set your API_KEY for subsequent requests.
 * List Datasets: List the datasets that you have configured on the RavenPack platform.
