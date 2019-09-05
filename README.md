@@ -27,7 +27,7 @@ Once the Addin has been correctly run, you will see the RavenPack tab on your ri
 * Event Taxonomy: Request the full event taxonomy supported by RavenPack Analytics.
 * Function Library: View documentation about available functions.
 
-#### Functions
+### Functions
 
 A number of functions are available that may be called from any cell in the spreadsheet.
 
