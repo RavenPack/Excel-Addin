@@ -8,6 +8,8 @@ Private Const apiUrlDatafile = "https://api.ravenpack.com/1.0/datafile"
 Public Function RPGetRecordCount(api_key As String, dataset_uuid As String, _
                                  start_date As String, end_date As String, _
                                  Optional time_zone As Variant)
+Attribute RPGetRecordCount.VB_Description = "Return the count for a particular dataset on a particular day"
+Attribute RPGetRecordCount.VB_ProcData.VB_Invoke_Func = " \n5"
                                  
     Dim client As New WebClient
     Dim request As New WebRequest
@@ -64,6 +66,8 @@ End Function
 Public Function RPGetDailyValue(api_key As String, dataset_uuid As String, _
                                 rp_entity_id As String, field_name As String, _
                                 timestamp_utc As Date, Optional ByVal time_zone As Variant)
+Attribute RPGetDailyValue.VB_Description = "Return the value for a particular indicator for a daily dataset on a particular day"
+Attribute RPGetDailyValue.VB_ProcData.VB_Invoke_Func = " \n5"
     Dim client As New WebClient
     Dim request As New WebRequest
     Dim response As WebResponse
@@ -79,7 +83,10 @@ Public Function RPGetDailyValue(api_key As String, dataset_uuid As String, _
     request.AddHeader "API_KEY", api_key
     request.RequestFormat = WebFormat.JSON
     conditions.Add "rp_entity_id", rp_entity_id
-    filters.Add "rp_entity_id", rp_entity_id
+    
+    If rp_entity_id <> "ROLLUP" Then
+        filters.Add "rp_entity_id", rp_entity_id
+    End If
     
     start_date = Format(timestamp_utc - 1, "yyyy-mm-dd") & " " & Format(timestamp_utc, "hh:mm:ss")
     end_date = Format(timestamp_utc, "yyyy-mm-dd") & " " & Format(timestamp_utc, "hh:mm:ss")
@@ -91,7 +98,6 @@ Public Function RPGetDailyValue(api_key As String, dataset_uuid As String, _
     blCust = False
     
     
-    requestBody.Add "frequency", "daily"
     requestBody.Add "filters", filters
     requestBody.Add "fields", Array(LCase(field_name))
     requestBody.Add "conditions", conditions
@@ -133,6 +139,8 @@ ErrorHandle:
 End Function
 
 Public Function RPEntityName(api_key As String, rp_entity_id As String)
+Attribute RPEntityName.VB_Description = "Map to the company ID give the RP_ENTITY_ID"
+Attribute RPEntityName.VB_ProcData.VB_Invoke_Func = " \n5"
     Dim client As New WebClient
     Dim request As New WebRequest
     Dim response As WebResponse
@@ -196,6 +204,8 @@ Public Function RPMapEntity(api_key As String, _
                             Optional ByVal SEDOL As String, _
                             Optional ByVal listing As String, _
                             Optional ByVal matchDate As Date)
+Attribute RPMapEntity.VB_Description = "Map to the RP_ENTITY_ID given a set of identifying information"
+Attribute RPMapEntity.VB_ProcData.VB_Invoke_Func = " \n5"
                             
     Dim errMsg As String
     Dim client As New WebClient
@@ -278,7 +288,11 @@ Private Function RPGetDailyEntityFn(api_key As String, rp_entity_id As String, _
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     request.RequestFormat = WebFormat.JSON
-    filters.Add "rp_entity_id", rp_entity_id
+    
+    If rp_entity_id <> "ROLLUP" Then
+        filters.Add "rp_entity_id", rp_entity_id
+    End If
+    
     conditions.Add "rp_entity_id", rp_entity_id
     start_date = Format(timestamp - 1, "yyyy-mm-dd") & " " & Format(timestamp, "hh:mm:ss")
     end_date = Format(timestamp, "yyyy-mm-dd") & " " & Format(timestamp, "hh:mm:ss")
@@ -321,6 +335,8 @@ End Function
 
 Public Function RPGetDailyEntitySentiment(api_key As Variant, rp_entity_id As Variant, _
                                           timestamp As Variant, Optional ByVal lookB As Variant, Optional ByVal time_zone As Variant)
+Attribute RPGetDailyEntitySentiment.VB_Description = "Return the 91-day sentiment strength for an entity on a particular day"
+Attribute RPGetDailyEntitySentiment.VB_ProcData.VB_Invoke_Func = " \n5"
     
     Dim innerFn As New Dictionary, wrapperFn As New Dictionary, fn As New Dictionary
     Dim fnName As String
@@ -375,6 +391,8 @@ End Function
 
 Public Function RPGetDailyEntityBuzz(api_key As Variant, rp_entity_id As Variant, _
                                           timestamp As Variant, Optional ByVal lookB As Variant, Optional ByVal time_zone As Variant)
+Attribute RPGetDailyEntityBuzz.VB_Description = "Return the average  media buzz for an entity on a particular day"
+Attribute RPGetDailyEntityBuzz.VB_ProcData.VB_Invoke_Func = " \n5"
                                           
     Dim innerFn As New Dictionary, wrapperFn As New Dictionary, fn As New Dictionary
     Dim fnName As String
@@ -429,6 +447,8 @@ End Function
 
 Public Function RPGetDailyEntityVolume(api_key As Variant, rp_entity_id As Variant, _
                                           timestamp As Variant, Optional ByVal time_zone As Variant)
+Attribute RPGetDailyEntityVolume.VB_Description = "Return the total volume of stories for an entity on a particular day"
+Attribute RPGetDailyEntityVolume.VB_ProcData.VB_Invoke_Func = " \n5"
                                           
     Dim innerFn As New Dictionary, wrapperFn As New Dictionary, fn As New Dictionary
     Dim fnName As String

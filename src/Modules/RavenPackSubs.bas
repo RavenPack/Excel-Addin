@@ -14,6 +14,18 @@ Private Const apiUrlJobs = "https://api.ravenpack.com/1.0/jobs"
 Private Const apiUrlJSON = "https://api.ravenpack.com/1.0/json"
 Private Const apiUrlMapping = "https://api.ravenpack.com/1.0/entity-mapping"
 
+'Code to standardize button functions
+Sub Button_Manager(subName As String)
+    
+    Code_Run True
+    
+    Verify_API_Sheet
+    
+    Application.Run subName
+    
+    Code_Run False
+End Sub
+
 ' Clear any table formating
 Sub clearShapes()
     Dim shp As Shape
@@ -162,7 +174,7 @@ Sub data_request_button()
 End Sub
 
 Sub FunctionLibraryForm_button()
-    FunctionLibraryForm.Show
+    Function_Library_Form.Show
 End Sub
 
 
@@ -1043,6 +1055,11 @@ Function GetInputRange(rInput As Excel.Range, _
     For nAttempt = 1 To 3  ' give user 3 attempts for typos
         vReturn = False
         vReturn = Application.InputBox(sPrompt, sTitle, sDefault, X, Y, Type:=0)
+        
+        If Left(vReturn, 2) <> "=R" Then
+            vReturn = sDefault
+        End If
+        
         If False = vReturn Or Len(vReturn) = 0 Then
             Exit For    ' user cancelled
         Else

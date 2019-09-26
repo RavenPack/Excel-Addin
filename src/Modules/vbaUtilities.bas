@@ -23,8 +23,38 @@ Sub Code_Run(blRun As Boolean)
     End If
 End Sub
 
+'Verify that the API sheet exists
+Sub Verify_API_Sheet()
+    Dim sh As Worksheet
+    Dim blShtEx As Boolean
+    
+    'Check to make sure sheet doesn't already exist
+    blShtEx = False
+    
+    For Each sh In ThisWorkbook.Sheets
+        If sh.name = apiName Then
+            blShtEx = True
+                
+            If sh.Visible = xlSheetVisible Then
+                sh.Visible = xlSheetVeryHidden
+            End If
+        End If
+    Next
+    
+    'If not create and hide
+    If Not blShtEx Then
+        ThisWorkbook.Sheets.Add After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+        
+        Set sh = ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+        
+        sh.name = apiName
+        sh.Visible = xlSheetVeryHidden
+    End If
+
+End Sub
+
 Sub Unhide_sheets()
-    Dim Sh As Worksheet
+    Dim sh As Worksheet
     Dim WS_count As Long, i As Long
     
     Code_Run True
@@ -36,8 +66,8 @@ Sub Unhide_sheets()
         ActiveWorkbook.Sheets(i).Visible = xlSheetVisible
     Next
     
-    For Each Sh In ActiveWorkbook.Sheets
-        Sh.Visible = xlSheetVisible
+    For Each sh In ActiveWorkbook.Sheets
+        sh.Visible = xlSheetVisible
     Next
     
     Code_Run False

@@ -147,28 +147,28 @@ Sub RunMacro(control As IRibbonControl)
 
 Select Case control.Id
   
-  Case "aButton01": Application.Run "check_server_status"
-  Case "aButton02": Application.Run "set_api_key"
+  Case "aButton01": Application.Run "Button_Manager", "check_server_status"
+  Case "aButton02": Application.Run "Button_Manager", "set_api_key"
   
-  Case "bButton01": Application.Run "list_datasets"
-  Case "bButton02": Application.Run "delete_datasets"
-  Case "bButton03": Application.Run "data_request_button"
+  Case "bButton01": Application.Run "Button_Manager", "list_datasets"
+  Case "bButton02": Application.Run "Button_Manager", "delete_datasets"
+  Case "bButton03": Application.Run "Button_Manager", "data_request_button"
   
-  Case "cButton01": Application.Run "entity_mapping_list_sub"
+  Case "cButton01": Application.Run "Button_Manager", "entity_mapping_list_sub"
   
-  Case "dButton01": Application.Run "cmdtReferenceFile"
-  Case "dButton02": Application.Run "compReferenceFile"
-  Case "dButton03": Application.Run "currReferenceFile"
-  Case "dButton04": Application.Run "natlReferenceFile"
-  Case "dButton05": Application.Run "orgaReferenceFile"
-  Case "dButton06": Application.Run "peopReferenceFile"
-  Case "dButton07": Application.Run "plceReferenceFile"
-  Case "dButton08": Application.Run "prodReferenceFile"
-  Case "dButton09": Application.Run "srceReferenceFile"
+  Case "dButton01": Application.Run "Button_Manager", "cmdtReferenceFile"
+  Case "dButton02": Application.Run "Button_Manager", "compReferenceFile"
+  Case "dButton03": Application.Run "Button_Manager", "currReferenceFile"
+  Case "dButton04": Application.Run "Button_Manager", "natlReferenceFile"
+  Case "dButton05": Application.Run "Button_Manager", "orgaReferenceFile"
+  Case "dButton06": Application.Run "Button_Manager", "peopReferenceFile"
+  Case "dButton07": Application.Run "Button_Manager", "plceReferenceFile"
+  Case "dButton08": Application.Run "Button_Manager", "prodReferenceFile"
+  Case "dButton09": Application.Run "Button_Manager", "srceReferenceFile"
   
-  Case "eButton01": Application.Run "taxonomy"
+  Case "eButton01": Application.Run "Button_Manager", "taxonomy"
   
-  Case "fButton01": Application.Run "FunctionLibraryForm_button"
+  Case "fButton01": Application.Run "Button_Manager", "FunctionLibraryForm_button"
   
  End Select
     
