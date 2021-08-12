@@ -1,9 +1,72 @@
 Attribute VB_Name = "RavenPackFunctions"
 Option Explicit
 
+Public prodType As String
+
 Private Const apiUrlJSON = "https://api.ravenpack.com/1.0/json"
 Private Const apiUrlMapping = "https://api.ravenpack.com/1.0/entity-mapping"
 Private Const apiUrlDatafile = "https://api.ravenpack.com/1.0/datafile"
+Private Const apiUrlStatus = "https://api.ravenpack.com/1.0/status"
+Private Const apiUrlBase = "https://api.ravenpack.com/1.0"
+
+Private Const apiUrlJSONEdge = "https://api-edge.ravenpack.com/1.0/json"
+Private Const apiUrlMappingEdge = "https://api-edge.ravenpack.com/1.0/entity-mapping"
+Private Const apiUrlDatafileEdge = "https://api-edge.ravenpack.com/1.0/datafile"
+Private Const apiUrlStatusEdge = "https://api-edge.ravenpack.com/1.0/status"
+Private Const apiUrlBaseEdge = "https://api-edge.ravenpack.com/1.0"
+
+Sub GetTheSelectedItemInDropDown(control As IRibbonControl, id As String, index As Integer)
+   If control.id = "dropDown" Then
+       prodType = id
+   End If
+End Sub
+
+Function Set_Api_Source(api_source As String) As String
+
+    If api_source = "Url_Map" Then
+        
+        If prodType = "item1" Then
+            Set_Api_Source = apiUrlMapping
+        Else
+            Set_Api_Source = apiUrlMappingEdge
+        End If
+        
+    ElseIf api_source = "Url_JSON" Then
+    
+        If prodType = "item1" Then
+            Set_Api_Source = apiUrlJSON
+        Else
+            Set_Api_Source = apiUrlJSONEdge
+        End If
+        
+    ElseIf api_source = "Url_Data" Then
+        
+        If prodType = "item1" Then
+            Set_Api_Source = apiUrlDatafile
+        Else
+            Set_Api_Source = apiUrlDatafileEdge
+        End If
+        
+    ElseIf api_source = "Status" Then
+        
+        If prodType = "item1" Then
+            Set_Api_Source = apiUrlStatus
+        Else
+            Set_Api_Source = apiUrlStatusEdge
+        End If
+        
+    ElseIf api_source = "Base" Then
+        
+        If prodType = "item1" Then
+            Set_Api_Source = apiUrlBase
+        Else
+            Set_Api_Source = apiUrlBaseEdge
+        End If
+        
+    End If
+    
+    
+End Function
 
 Public Function RPGetRecordCount(api_key As String, dataset_uuid As String, _
                                  start_date As String, end_date As String, _
@@ -21,7 +84,7 @@ Attribute RPGetRecordCount.VB_ProcData.VB_Invoke_Func = " \n5"
     On Error GoTo ErrorHandle
 
     
-    client.BaseUrl = apiUrlDatafile & "/" & dataset_uuid & "/count"
+    client.BaseUrl = Set_Api_Source("Url_Data") & "/" & dataset_uuid & "/count"
     'WebHelpers.EnableLogging = True
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
@@ -78,7 +141,7 @@ Attribute RPGetDailyValue.VB_ProcData.VB_Invoke_Func = " \n5"
     
     On Error GoTo ErrorHandle
         
-    client.BaseUrl = apiUrlJSON & "/" & dataset_uuid
+    client.BaseUrl = Set_Api_Source("Url_JSON") & "/" & dataset_uuid
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     request.RequestFormat = WebFormat.JSON
@@ -98,10 +161,70 @@ Attribute RPGetDailyValue.VB_ProcData.VB_Invoke_Func = " \n5"
     blCust = False
     
     
+    If LCase(field_name) = "sentiment" Then
+        fnName = LCase(field_name)
+        
+        If prodType = "item1" Then
+        
+            innerFn.Add "field", "EVENT_SENTIMENT_SCORE"
+            
+        Else
+        
+            innerFn.Add "field", "EVENT_SENTIMENT"
+            
+        End If
+        
+        innerFn.Add "lookback", 91
+        wrapperFn.Add "strength", innerFn
+        fn.Add fnName, wrapperFn
+        blCust = True
+    ElseIf LCase(field_name) = "buzz" Then
+        fnName = "buzz"
+        innerFn.Add "field", "RP_ENTITY_ID"
+        innerFn.Add "lookback", 91
+        wrapperFn.Add "buzz", innerFn
+        fn.Add fnName, wrapperFn
+        blCust = True
+    ElseIf LCase(field_name) = "volume" Then
+        fnName = "volume"
+        
+        If prodType = "item1" Then
+        
+            innerFn.Add "field", "RP_STORY_ID"
+        
+        Else
+        
+            innerFn.Add "field", "RP_DOCUMENT_ID"
+            
+        End If
+        
+        wrapperFn.Add "cardinality", innerFn
+        fn.Add fnName, wrapperFn
+        blCust = True
+'    ElseIf LCase(field_name) = "stddev" Then
+'        fnName = "stddev"
+'        innerFn.Add "field", "event_sentiment_score"
+'        wrapperFn.Add "stddev", innerFn
+'        fn.Add fnName, wrapperFn
+'    ElseIf LCase(field_name) = "avg" Then
+'        fnName = "avg"
+'        innerFn.Add "field", "event_sentiment_score"
+'        innerFn.Add "lookback", 1
+'        wrapperFn.Add "avg", innerFn
+'        fn.Add fnName, wrapperFn
+    End If
+    
+    
+    requestBody.Add "frequency", "daily"
     requestBody.Add "filters", filters
+    
+    If blCust Then
+        requestBody.Add "custom_fields", Array(fn)
+    End If
+    
     requestBody.Add "fields", Array(LCase(field_name))
     requestBody.Add "conditions", conditions
-    requestBody.Add "time_zone", CStr(time_zone)
+    requestBody.Add "time_zone", time_zone
     requestBody.Add "start_date", start_date
     requestBody.Add "end_date", end_date
     
@@ -116,7 +239,7 @@ Attribute RPGetDailyValue.VB_ProcData.VB_Invoke_Func = " \n5"
         errMsg = Response_Error_Handle(response, Application.Caller)
         'Error_Message errMsg
         
-        RPGetDailyValue = vbNullString
+        RPGetDailyValue = errMsg
         
         'If VarType(Application.Caller) = 5 Then
         'Toggle_Change False
@@ -154,7 +277,8 @@ Attribute RPEntityName.VB_ProcData.VB_Invoke_Func = " \n5"
         Exit Function
     End If
     
-    client.BaseUrl = apiUrlMapping
+    client.BaseUrl = Set_Api_Source("Url_Map")
+
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     identifiers.Add "name", rp_entity_id
@@ -221,7 +345,8 @@ Attribute RPMapEntity.VB_ProcData.VB_Invoke_Func = " \n5"
     End If
     
         
-    client.BaseUrl = apiUrlMapping
+    client.BaseUrl = Set_Api_Source("Url_Map")
+    
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     
@@ -274,6 +399,7 @@ Attribute RPMapEntity.VB_ProcData.VB_Invoke_Func = " \n5"
     End If
 End Function
 
+'Updated
 Private Function RPGetDailyEntityFn(api_key As String, rp_entity_id As String, _
                                     fnName As String, fn As Dictionary, _
                                     timestamp As Date, ByVal time_zone As Variant)
@@ -284,7 +410,8 @@ Private Function RPGetDailyEntityFn(api_key As String, rp_entity_id As String, _
     Dim requestBody As New Dictionary, filters As New Dictionary, conditions As New Dictionary
     Dim start_date As String, end_date As String, errMsg As String
     
-    client.BaseUrl = apiUrlJSON
+    
+    client.BaseUrl = Set_Api_Source("Url_JSON")
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     request.RequestFormat = WebFormat.JSON
@@ -310,6 +437,19 @@ Private Function RPGetDailyEntityFn(api_key As String, rp_entity_id As String, _
     requestBody.Add "start_date", start_date
     requestBody.Add "end_date", end_date
     
+    If prodType = "item1" Then
+    
+        requestBody.Add "product_version", "1.0"
+        requestBody.Add "product", "rpa"
+        
+    Else
+        
+        requestBody.Add "product_version", "1.0"
+        requestBody.Add "product", "edge"
+        
+    End If
+    
+    
     Set request.Body = requestBody
     client.timeOutMS = timeOutMilSec
     Set response = client.Execute(request)
@@ -333,6 +473,7 @@ Private Function RPGetDailyEntityFn(api_key As String, rp_entity_id As String, _
 
 End Function
 
+'Updated
 Public Function RPGetDailyEntitySentiment(api_key As Variant, rp_entity_id As Variant, _
                                           timestamp As Variant, Optional ByVal lookB As Variant, Optional ByVal time_zone As Variant)
 Attribute RPGetDailyEntitySentiment.VB_Description = "Return the 91-day sentiment strength for an entity on a particular day"
@@ -375,7 +516,16 @@ Attribute RPGetDailyEntitySentiment.VB_ProcData.VB_Invoke_Func = " \n5"
     End If
     
     fnName = "sentiment"
-    innerFn.Add "field", "EVENT_SENTIMENT_SCORE"
+    
+    If prodType = "item1" Then
+    
+        innerFn.Add "field", "EVENT_SENTIMENT_SCORE"
+        
+    Else
+    
+        innerFn.Add "field", "EVENT_SENTIMENT"
+        
+    End If
     
     If IsMissing(lookB) Then
         innerFn.Add "lookback", 91
@@ -389,6 +539,7 @@ Attribute RPGetDailyEntitySentiment.VB_ProcData.VB_Invoke_Func = " \n5"
     RPGetDailyEntitySentiment = RPGetDailyEntityFn(CStr(api_key), CStr(rp_entity_id), fnName, fn, CDate(timestamp), CStr(time_zone))
 End Function
 
+'Updated
 Public Function RPGetDailyEntityBuzz(api_key As Variant, rp_entity_id As Variant, _
                                           timestamp As Variant, Optional ByVal lookB As Variant, Optional ByVal time_zone As Variant)
 Attribute RPGetDailyEntityBuzz.VB_Description = "Return the average  media buzz for an entity on a particular day"
@@ -445,6 +596,7 @@ Attribute RPGetDailyEntityBuzz.VB_ProcData.VB_Invoke_Func = " \n5"
     RPGetDailyEntityBuzz = RPGetDailyEntityFn(CStr(api_key), CStr(rp_entity_id), fnName, fn, CDate(timestamp), CStr(time_zone))
 End Function
 
+'Updated and Working
 Public Function RPGetDailyEntityVolume(api_key As Variant, rp_entity_id As Variant, _
                                           timestamp As Variant, Optional ByVal time_zone As Variant)
 Attribute RPGetDailyEntityVolume.VB_Description = "Return the total volume of stories for an entity on a particular day"
@@ -470,7 +622,16 @@ Attribute RPGetDailyEntityVolume.VB_ProcData.VB_Invoke_Func = " \n5"
     End If
     
     fnName = "volume"
-    innerFn.Add "field", "RP_STORY_ID"
+    
+    If prodType = "item1" Then
+    
+        innerFn.Add "field", "RP_STORY_ID"
+        
+    Else
+    
+        innerFn.Add "field", "RP_DOCUMENT_ID"
+        
+    End If
     
     wrapperFn.Add "cardinality", innerFn
     fn.Add fnName, wrapperFn

@@ -181,7 +181,6 @@ End Sub
 Function Response_Error_Handle(resp As WebResponse, Optional rngCall As Range) As String
     Dim var As Variant
     Dim outMsg As String
-
             
     Set apiSh = ActiveWorkbook.Sheets(apiName)
     
@@ -216,7 +215,7 @@ Function Response_Error_Handle(resp As WebResponse, Optional rngCall As Range) A
             Next
         End If
     Else
-        outMsg = "Unable to connect to the web."
+
     End If
 
     If outMsg = vbNullString And resp.StatusDescription <> vbNullString Then

@@ -4,15 +4,6 @@ Dim apiSh As Worksheet, actSh As Worksheet
 Option Explicit
 
 Public api_key As String
-Private Const apiUrlEntityRefTest = "https://api.ravenpack.com/1.0/entity-reference/F9232E"
-Private Const apiUrlEntityRefType = "https://api.ravenpack.com/1.0/entity-reference?entity_type="
-Private Const apiUrlTaxonomy = "https://api.ravenpack.com/1.0/taxonomy"
-Private Const apiUrlStatus = "https://api.ravenpack.com/1.0/status"
-Private Const apiUrlDatasets = "https://api.ravenpack.com/1.0/datasets"
-Private Const apiUrlDatafile = "https://api.ravenpack.com/1.0/datafile"
-Private Const apiUrlJobs = "https://api.ravenpack.com/1.0/jobs"
-Private Const apiUrlJSON = "https://api.ravenpack.com/1.0/json"
-Private Const apiUrlMapping = "https://api.ravenpack.com/1.0/entity-mapping"
 
 'Code to standardize button functions
 Sub Button_Manager(subName As String)
@@ -26,6 +17,70 @@ Sub Button_Manager(subName As String)
     Code_Run False
 End Sub
 
+Sub Verify_Perm()
+
+    Dim client As New WebClient
+    Dim request As New WebRequest
+    Dim response As WebResponse
+    Dim var As Variant
+    
+    'TokenSheet.Visible = xlSheetVisible
+    
+    If TokenSheet.Cells(1, 1) = vbNullString Then
+    
+        TokenSheet.Cells(1, 2) = False
+        TokenSheet.Cells(2, 2) = False
+        
+    Else
+    
+        client.BaseUrl = "https://edge.ravenpack.com/auth/token/verify/?token=" & TokenSheet.Cells(1, 1)
+        request.Method = WebMethod.HttpGet
+        'request.AddHeader "API_KEY", new_api_key
+    
+        client.timeOutMS = timeOutMilSec
+        Set response = client.Execute(request)
+        
+        ' Check if we got the right response
+        If response.StatusCode = WebStatusCode.GatewayTimeout Then
+            
+            TokenSheet.Cells(1, 2) = False
+            TokenSheet.Cells(2, 2) = False
+        
+            Exit Sub
+            
+        ElseIf response.StatusCode <> WebStatusCode.OK Then
+        
+            TokenSheet.Cells(1, 2) = False
+            TokenSheet.Cells(2, 2) = False
+            
+            Exit Sub
+            
+        Else
+            
+            TokenSheet.Cells(1, 2) = False
+            TokenSheet.Cells(2, 2) = False
+            
+            For Each var In response.Data("products")
+            
+                If CStr(var) = "rpa/1.0" Then
+                    
+                    TokenSheet.Cells(1, 2) = True
+                    
+                End If
+                
+                If CStr(var) = "edge/1.0" Then
+                
+                    TokenSheet.Cells(2, 2) = True
+                    
+                End If
+
+            Next
+        End If
+        
+    End If
+    
+End Sub
+
 ' Clear any table formating
 Sub clearShapes()
     Dim shp As Shape
@@ -35,6 +90,7 @@ Sub clearShapes()
             shp.Delete
         End If
     Next
+    
 End Sub
 
 'Clear sheet content
@@ -79,7 +135,7 @@ Sub set_api_key()
     
     ' Check if API_KEY is valid with an entity request F9232E
     
-    client.BaseUrl = apiUrlEntityRefTest
+    client.BaseUrl = Set_Api_Source("Base") & "/entity-reference/F9232E"
     request.Method = WebMethod.HttpGet
     request.AddHeader "API_KEY", new_api_key
     
@@ -98,11 +154,26 @@ Sub set_api_key()
         Exit Sub
         
     Else
+    
+        'TokenSheet.Visible = xlSheetVisible
+        
         api_key = new_api_key
-        apiSh.Cells(1, 1).value = new_api_key
+        
+        TokenSheet.Cells(1, 1).value = new_api_key
+        
+        Verify_Perm
+        
+        'Application.OnTime Now() + TimeSerial(0, 0, 2), "'Store_API_Key""" & api_key & """'"
+        
+        'TokenSheet.Visible = xlSheetVeryHidden
+        
     End If
     
 End Sub
+
+'Function Store_API_Key(api_k As String)
+'    TokenSheet.Cells(1, 1) = api_k
+'End Function
 
 ' Get API_KEY
 Sub save_api_key()
@@ -125,7 +196,7 @@ Sub save_api_key()
         ' Check if API_KEY is valid with an entity request F9232E
         Dim client As New WebClient, request As New WebRequest, response As WebResponse
         
-        client.BaseUrl = apiUrlEntityRefTest
+        client.BaseUrl = Set_Api_Source("Base") & "/entity-reference/F9232E"
         request.Method = WebMethod.HttpGet
         request.AddHeader "API_KEY", new_api_key
         
@@ -150,6 +221,15 @@ End Sub
 
 ' Request data for a dataset
 Sub data_request_button()
+
+    If prodType <> "item1" And TokenSheet.Cells(2, 2) = False Then
+    
+        MsgBox "User does not have permission to access this product."
+        
+        Exit Sub
+        
+    End If
+    
     'VARIABLE DATES
     Dim yesterday As String
     Dim today As String
@@ -184,7 +264,7 @@ Sub check_server_status()
     Dim response As WebResponse
     
     ' Request the status from the server
-    client.BaseUrl = apiUrlStatus
+    client.BaseUrl = Set_Api_Source("Status")
     Set response = client.GetJson("")
     If response.StatusCode = WebStatusCode.OK Then
         MsgBox "Status: " & response.Data("status"), , "RavenPack"
@@ -200,6 +280,15 @@ Sub list_datasets()
     Dim request As New WebRequest
     Dim response As WebResponse
     Dim errMsg As String
+    
+    If prodType <> "item1" And TokenSheet.Cells(2, 2) = False Then
+    
+        MsgBox "User does not have permission to access this product."
+        
+        Exit Sub
+        
+    End If
+
     
     On Error GoTo ErrHandle
     
@@ -227,7 +316,12 @@ Sub list_datasets()
     
     ' Send request of dataset list
     
-    client.BaseUrl = apiUrlDatasets
+    If prodType = "item1" Then
+        client.BaseUrl = Set_Api_Source("Base") & "/datasets?product=rpa"
+    Else
+        client.BaseUrl = Set_Api_Source("Base") & "/datasets?product=edge"
+    End If
+    
     request.Method = WebMethod.HttpGet
     request.AddHeader "API_KEY", api_key
     StatusForm.status.Caption = "Fetching Dataset List..."
@@ -238,6 +332,9 @@ Sub list_datasets()
     
     ' Print error message and exit
     If response.StatusCode <> WebStatusCode.OK Then
+        
+        StatusForm.Hide
+        
         If response.StatusCode = 408 Then
             errMsg = "Error: Data Request Timed Out."
             MsgBox errMsg, , "RavenPack"
@@ -296,247 +393,20 @@ ErrHandle:
     Code_Run False
     ErrorHandling "List_Datasets", ""
 End Sub
-        
-Sub getReferenceFile(entity_type)
-    Dim client As New WebClient
-    Dim request As New WebRequest
-    Dim response As New WebResponse
-    Dim csvContent As String, location As String, csvLines() As String, csv As String, elements() As String, outputArr() As String
-    Dim fileO As String, lineText As String, tempPath As String, errMsg As String
-    Dim A As Variant, parsed As Variant
-    Dim i As Long, j As Long, lines As Long, elCount As Long, start_row As Long
-    Dim r As Range
-    Dim csvColl As New Collection
-    
-    On Error GoTo ErrHandle
-    
-    Set apiSh = ActiveWorkbook.Sheets(apiName)
-    Set actSh = ActiveSheet
-    
-    Code_Run True
-    
-    'Check if public API_KEY is empty
-    If api_key = "" Then
-        save_api_key
-        api_key = apiSh.Cells(1, 1)
-        If api_key = "" Then
-            Exit Sub
-        End If
-    End If
-    
-    Dim rng As Range: Set rng = actSh.UsedRange
-    'Ask for permission to delete existing data
-    If WorksheetFunction.CountA(rng) > 0 Then
-        If MsgBox(Prompt:="Your current spreadsheet is not empty. The existing data will be purged " + _
-                          "by the pending action with no recovery option. Are you sure you would like to proceed?", _
-                  Buttons:=vbYesNo + vbExclamation, Title:="CAUTION!") = 7 Then End
-    End If
-    
-    ' Make the HTTP request1
-    
-        
-    'WebHelpers.EnableLogging = True
-    client.BaseUrl = apiUrlEntityRefType & entity_type
-    client.FollowRedirects = True
-    request.Method = WebMethod.HttpGet
-    request.AddHeader "API_KEY", api_key
-    StatusForm.status.Caption = "Fetching Reference Data..."
-    StatusForm.Show
-    
-    client.timeOutMS = timeOutMilSec
-    Set response = client.Execute(request)
-    
-    ' Print error message and exit
-    
-    If response.StatusCode = 303 Then
-        Dim header As Dictionary
-        For Each header In response.Headers
-            If header("Key") = "Location" Then
-                location = header("Value")
-                Exit For
-            End If
-        Next
-        
-    ElseIf response.StatusCode <> WebStatusCode.OK Then
-        If response.StatusCode = 408 Then
-            errMsg = "Error: Data Request Timed Out."
-            ActiveSheet.Cells(1, 1) = errMsg
-            
-            Code_Run False
-            Exit Sub
-        End If
-        
-
-        errMsg = Response_Error_Handle(response, Nothing)
-        ActiveSheet.Cells(1, 1) = errMsg
-        
-        Code_Run False
-        Exit Sub
-        
-    Else
-    
-        csvContent = response.Content
-    End If
-    
-    If Not IsEmpty(location) And location <> "" Then
-        client.BaseUrl = location
-        client.timeOutMS = timeOutMilSec
-        Set response = client.Execute(request)
-        
-        If response.StatusCode <> WebStatusCode.OK Then
-            errMsg = Response_Error_Handle(response, Nothing)
-            ActiveSheet.Cells(1, 1) = errMsg
-            
-            Exit Sub
-        Else
-            csvContent = response.Content
-        End If
-    End If
-    
-    If Not IsEmpty(csvContent) Then
-        ' Clear current sheet
-        Application.ScreenUpdating = False
-        
-        clear_sheet
-        
-        ' Set some specific formatting for reference files
-        Range("A:H").ColumnWidth = 8.43
-        Range("A:D").NumberFormat = "@"
-        Range("E:F").NumberFormat = "yyyy-mm-dd"
-        Range("E:F").HorizontalAlignment = xlRight
-        Cells(1, 1).Select
-        
-        ' Load the CSV from the response content directly into sheet
-        StatusForm.status.Caption = "Loading Reference Data..."
-        StatusForm.Repaint
-        
-        csvLines = Split(response.Content, Chr(10))
-        If Is_MAC Then
-            elements = Split(csvLines(20), ",")
-        Else
-            elements = Split(csvLines(0), ",")
-        End If
-
-        elCount = UBound(elements)
-
-        If Is_MAC Then
-            start_row = 11
-        Else
-            start_row = 0
-        End If
-
-        
-        ReDim outputArr(WorksheetFunction.Min(actSh.Rows.Count, UBound(csvLines, 1)), UBound(elements))
-        
-        If UBound(csvLines) > 1048576 Then
-            MsgBox "Maximum rows allowed by Excel exceeded. Truncating data imported."
-            'Exit For
-        End If
-
-        
-        
-        For i = start_row To WorksheetFunction.Min(actSh.Rows.Count, UBound(csvLines, 1))
-            If i Mod 1000 = 0 Then
-                StatusForm.status.Caption = "Loading " & i & " of " & CStr(WorksheetFunction.Min(actSh.Rows.Count, UBound(csvLines, 1))) & " lines of Reference Data..."
-                StatusForm.Repaint
-                DoEvents
-            End If
-        
-            If InStr(csvLines(i), ",") <> 0 Then
-                j = 0
-                Set csvColl = ParseCSVToCollection(csvLines(i))
-                
-                For Each A In csvColl(1)
-                    outputArr(i, j) = A
-                    j = j + 1
-                Next
-                
-
-            End If
-        Next i
-        
-        Set r = Range(Cells(1, 1), Cells(1, 1))
-        r.Resize(UBound(outputArr, 1), UBound(outputArr, 2) + 1) = outputArr
-            
-        If Is_MAC Then
-            ActiveSheet.Rows("1:11").EntireRow.Delete
-        End If
-        
-        'FREEZE TOP ROW
-        With ActiveWindow
-            .SplitColumn = 0
-            .SplitRow = 1
-        End With
-        Range("A1:F1").Cells.Font.Bold = True
-        ActiveSheet.UsedRange.Columns.AutoFit
-        ActiveWindow.FreezePanes = True
-        ' Set focus on cell 1x1
-        Cells(1, 1).Select
-        Application.ScreenUpdating = True
-    End If
-    
-    StatusForm.Hide
-    
-    Code_Run False
-    
-    Exit Sub
-
-ErrHandle:
-    StatusForm.Hide
-    Code_Run False
-    ErrorHandling "Get_Reference_File", Err.Description
-End Sub
-
-' COMMODITIES
-Sub cmdtReferenceFile()
-    getReferenceFile "CMDT"
-End Sub
-
-' COMPANIES
-Sub compReferenceFile()
-    getReferenceFile "COMP"
-End Sub
-
-' CURRENCIES
-Sub currReferenceFile()
-    getReferenceFile "CURR"
-End Sub
-
-' NATIONALITIES
-Sub natlReferenceFile()
-    getReferenceFile "NATL"
-End Sub
-
-' ORGANIZATIONS
-Sub orgaReferenceFile()
-    getReferenceFile "ORGA"
-End Sub
-
-' PEOPLE
-Sub peopReferenceFile()
-    getReferenceFile "PEOP"
-End Sub
-
-' PLACES
-Sub plceReferenceFile()
-    getReferenceFile "PLCE"
-End Sub
-
-' PRODUCTS
-Sub prodReferenceFile()
-    getReferenceFile "PROD"
-End Sub
-
-' SOURCES
-Sub srceReferenceFile()
-    getReferenceFile "SRCE"
-End Sub
             
 Sub taxonomy()
     Dim errMsg As String
     Dim client As New WebClient
     Dim request As New WebRequest
     Dim response As WebResponse
+    
+    If prodType <> "item1" And TokenSheet.Cells(2, 2) = False Then
+    
+        MsgBox "User does not have permission to access this product."
+        
+        Exit Sub
+        
+    End If
     
     Set apiSh = ActiveWorkbook.Sheets(apiName)
 
@@ -558,8 +428,8 @@ Sub taxonomy()
                   Buttons:=vbYesNo + vbExclamation, Title:="CAUTION!") = 7 Then End
     End If
     
-    
-    client.BaseUrl = apiUrlTaxonomy
+    Call clear_sheet
+    client.BaseUrl = Set_Api_Source("Base") & "/taxonomy"
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     StatusForm.status.Caption = "Fetching Taxonomy..."
@@ -590,7 +460,7 @@ Sub taxonomy()
     Else
         ' Clear the active worksheet and switch off auto-updating
         Application.ScreenUpdating = False
-        Call clear_sheet
+        'Call clear_sheet
         
         ' Set the headers by getting the first element and listing the keys
         ' Note, we're relying on the fact that the server sends the keys back
@@ -605,6 +475,7 @@ Sub taxonomy()
 
         ' Loop through each entry
         Dim category As Variant
+        Dim tag_var As Variant
         For Each category In response.Data("categories")
             Dim k As Integer, fieldname As String
             For k = 0 To category.Count - 1
@@ -622,7 +493,29 @@ Sub taxonomy()
                         End If
                     Next
                 Else
-                    value = category.Item(fieldname)
+
+                    If VarType(category.Item(fieldname)) = vbString Then
+                        value = category.Item(fieldname)
+                    Else
+                        i = i
+                        
+                        If VarType(category.Item(fieldname)) = 9 Then
+                        
+                            For Each tag_var In category.Item(fieldname)
+                            
+                                i = i
+                                
+                            Next
+                            
+                        ElseIf VarType(category.Item(fieldname)) = 11 Then
+                        
+                            i = i
+                            value = category.Item(fieldname)
+                            
+                        End If
+                        
+                    End If
+
                 End If
                 
                 Cells(i, k + 1).value = value
@@ -674,6 +567,14 @@ Sub entity_mapping_list_sub()
     Dim headStr As String, key As String
     Dim idx As Integer, i As Integer
     Dim rp_entity As Variant, requestData As Variant, var As Variant, matchedVar As Variant
+    
+    If prodType <> "item1" And TokenSheet.Cells(2, 2) = False Then
+    
+        MsgBox "User does not have permission to access this product."
+        
+        Exit Sub
+        
+    End If
 
     Set apiSh = ActiveWorkbook.Sheets(apiName)
     
@@ -724,12 +625,12 @@ Sub entity_mapping_list_sub()
         ' Create a collection of entries
         For Each cell In rInput
             If cell.value <> "" Then
-                entity_list_col.Add cell.value
+                entity_list_col.Add CStr(cell.value)
             End If
         Next cell
     
     
-        client.BaseUrl = apiUrlMapping
+        client.BaseUrl = Set_Api_Source("Base") & "/entity-mapping"
         request.Method = WebMethod.HttpPost
         request.AddHeader "API_KEY", api_key
         requestBody.Add "identifiers", entity_list_col
@@ -765,8 +666,8 @@ Sub entity_mapping_list_sub()
         
         
             For Each cell In rInput
-                If cell.value <> "" Then
-                    idx = valueIndex(cell.value)
+                If CStr(cell.value) <> "" Then
+                    idx = valueIndex(CStr(cell.value))
                     
                     If idx <> 0 Then
                         If response.Data("identifiers_mapped")(idx)("rp_entities").Count > 0 Then
@@ -807,7 +708,7 @@ Sub entity_mapping_list_sub()
         Next cell
         
         
-        client.BaseUrl = apiUrlMapping
+        client.BaseUrl = Set_Api_Source("Base") & "/entity-mapping"
         request.Method = WebMethod.HttpPost
         request.AddHeader "API_KEY", api_key
         requestBody.Add "identifiers", entity_list_col
@@ -915,7 +816,7 @@ Sub entity_mapping_list_sub()
         Next cell
 
         'Make URL call
-        client.BaseUrl = apiUrlMapping
+        client.BaseUrl = Set_Api_Source("Base") & "/entity-mapping"
         request.Method = WebMethod.HttpPost
         request.AddHeader "API_KEY", api_key
         requestBody.Add "identifiers", entity_list_col
@@ -1137,7 +1038,7 @@ Sub DatafileRequest(ByVal start_date As String, ByVal start_date_time As String,
     
     Code_Run True
         
-    client.BaseUrl = apiUrlDatafile & "/" & dataset_uuid
+    client.BaseUrl = Set_Api_Source("Base") & "/datafile" & "/" & dataset_uuid
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     request.RequestFormat = WebFormat.JSON
@@ -1170,7 +1071,7 @@ Sub DatafileRequest(ByVal start_date As String, ByVal start_date_time As String,
         
     Else
         token_id = response.Data("token")
-        client.BaseUrl = apiUrlJobs & "/" & token_id
+        client.BaseUrl = Set_Api_Source("Base") & "/jobs/" & token_id
         
         request.Method = WebMethod.HttpGet
         Set request.Body = New Dictionary
@@ -1316,6 +1217,16 @@ Public Sub DataRequest(ByVal start_date As String, ByVal start_date_time As Stri
     Dim requestBody As New Dictionary
     Dim datasetFields As Variant
     Dim fileURL As String, start_date_fmt As String, end_date_fmt As String, errMsg As String
+    Dim countc As Long, countr As Long
+    
+    If prodType <> "item1" And TokenSheet.Cells(2, 2) = False Then
+    
+        MsgBox "User does not have permission to access this product."
+        
+        Exit Sub
+        
+    End If
+
     
     Code_Run True
     
@@ -1355,7 +1266,7 @@ Public Sub DataRequest(ByVal start_date As String, ByVal start_date_time As Stri
     End If
     
     ' reuse our http objects
-    client.BaseUrl = apiUrlJSON & "/" & dataset_uuid
+    client.BaseUrl = Set_Api_Source("Base") & "/json/" & dataset_uuid
     request.Method = WebMethod.HttpPost
     request.AddHeader "API_KEY", api_key
     request.RequestFormat = WebFormat.JSON
@@ -1380,7 +1291,7 @@ Public Sub DataRequest(ByVal start_date As String, ByVal start_date_time As Stri
         recordCount = RPGetRecordCount(api_key, dataset_uuid, start_date_fmt, end_date_fmt, "UTC")
         
         If recordCount > 1048576 Then
-            DataRequestForm.status_label.Caption = "Number of records requested exceeds the maximum allowed by Excel in one sheet."
+            DataRequestForm.status_label.Caption = "Number of records requested exceeds the maximum allowed by Excel in one sheet (1,048,576)."
             Code_Run False
             Exit Sub
         End If
@@ -1447,6 +1358,7 @@ Public Sub DataRequest(ByVal start_date As String, ByVal start_date_time As Stri
             Set firstRecord = response.Data("records")(1)
             For i = 0 To firstRecord.Count - 1
                 Cells(1, i + 1).value = UCase(firstRecord.keys()(i))
+                Cells(1, i + 1).Font.Bold = True
             Next i
             ' Then insert the data in reverse order
             i = response.Data("records").Count + 1
@@ -1486,8 +1398,25 @@ Public Sub DataRequest(ByVal start_date As String, ByVal start_date_time As Stri
             .SplitColumn = 0
             .SplitRow = 1
         End With
+        
         Range("A1:AX1").Cells.Font.Bold = True
         ActiveSheet.UsedRange.Columns.AutoFit
+        
+        countc = ActiveSheet.Cells(1, ActiveSheet.Columns.Count).End(xlToLeft).Column
+        countr = ActiveSheet.Cells(ActiveSheet.Rows.Count, 1).End(xlUp).Row
+        
+        For i = 1 To countc
+        
+            ActiveSheet.Cells(1, i).Font.Bold = True
+            
+            If InStr(ActiveSheet.Cells(1, i), "_UTC") <> 0 Then
+            
+                ActiveSheet.Range(ActiveSheet.Cells(2, i), ActiveSheet.Cells(countr, i)).Font.Bold = True
+                
+            End If
+            
+        Next i
+        
         ActiveWindow.FreezePanes = True
         ' Set focus on cell 1x1
         Cells(1, 1).Select

@@ -1,9 +1,12 @@
 Attribute VB_Name = "RibbonSetup"
+Private mCurrentItemID As Variant
+Dim prodType As String
+
 
 Sub GetVisible(control As IRibbonControl, ByRef MakeVisible)
 'PURPOSE: Show/Hide buttons based on how many you need (False = Hide/True = Show)
 
-Select Case control.Id
+Select Case control.id
   Case "GroupA": MakeVisible = True
   Case "aButton01": MakeVisible = True
   Case "aButton02": MakeVisible = True
@@ -15,23 +18,14 @@ Select Case control.Id
   Case "GroupC": MakeVisible = True
   Case "cButton01": MakeVisible = True
   
-  Case "GroupD": MakeVisible = True
-  Case "dButton01": MakeVisible = True
-  Case "dButton02": MakeVisible = True
-  Case "dButton03": MakeVisible = True
-  Case "dButton04": MakeVisible = True
-  Case "dButton05": MakeVisible = True
-  Case "dButton06": MakeVisible = True
-  Case "dButton07": MakeVisible = True
-  Case "dButton08": MakeVisible = True
-  Case "dButton09": MakeVisible = True
-  
   Case "GroupE": MakeVisible = True
   Case "eButton01": MakeVisible = True
   
   Case "GroupF": MakeVisible = True
   Case "fButton01": MakeVisible = True
   
+  Case "GroupG": MakeVisible = True
+  Case "dropDown": MakeVisible = True
 End Select
 
 End Sub
@@ -39,7 +33,7 @@ End Sub
 Sub GetLabel(ByVal control As IRibbonControl, ByRef Labeling)
 'PURPOSE: Determine the text to go along with your Tab, Groups, and Buttons
 
-Select Case control.Id
+Select Case control.id
   
   Case "CustomTab": Labeling = "RavenPack"
   
@@ -53,17 +47,6 @@ Select Case control.Id
   
   Case "GroupC": Labeling = ""
   Case "cButton01": Labeling = "Map Entities"
-  
-  Case "GroupD": Labeling = "Reference Data"
-  Case "dButton01": Labeling = "Commodities"
-  Case "dButton02": Labeling = "Companies"
-  Case "dButton03": Labeling = "Currencies"
-  Case "dButton04": Labeling = "Nationalities"
-  Case "dButton05": Labeling = "Organizations"
-  Case "dButton06": Labeling = "People"
-  Case "dButton07": Labeling = "Places"
-  Case "dButton08": Labeling = "Products"
-  Case "dButton09": Labeling = "Sources"
   
   Case "GroupE": Labeling = ""
   Case "eButton01": Labeling = "Event Taxonomy"
@@ -79,7 +62,7 @@ Sub GetImage(control As IRibbonControl, ByRef RibbonImage)
 'PURPOSE: Tell each button which image to load from the Microsoft Icon Library
 'TIPS: Image names are case sensitive, if image does not appear in ribbon after re-starting Excel, the image name is incorrect
 
-Select Case control.Id
+Select Case control.id
   
   Case "aButton01": RibbonImage = "DatabaseCopyDatabaseFile"
   Case "aButton02": RibbonImage = "AdpPrimaryKey"
@@ -89,16 +72,6 @@ Select Case control.Id
   Case "bButton03": RibbonImage = "ControlLayoutTabular"
   
   Case "cButton01": RibbonImage = "DiagramCycleInsertClassic"
-  
-  Case "dButton01": RibbonImage = "SetPertWeights"
-  Case "dButton02": RibbonImage = "BlogHomePage"
-  Case "dButton03": RibbonImage = "AccountingFormat"
-  Case "dButton04": RibbonImage = "ViewDisplayInHighContrast"
-  Case "dButton05": RibbonImage = "MeetingsWorkspace"
-  Case "dButton06": RibbonImage = "AddOrRemoveAttendees"
-  Case "dButton07": RibbonImage = "OutlookGlobe"
-  Case "dButton08": RibbonImage = "FindDialog"
-  Case "dButton09": RibbonImage = "ShapesDuplicate"
   
   Case "eButton01": RibbonImage = "AccessFormDatasheet"
   
@@ -114,7 +87,7 @@ Sub GetSize(control As IRibbonControl, ByRef Size)
 Const Large As Integer = 1
 Const Small As Integer = 0
 
-Select Case control.Id
+Select Case control.id
     
   Case "aButton01": Size = Large
   Case "aButton02": Size = Large
@@ -123,16 +96,6 @@ Select Case control.Id
   Case "bButton03": Size = Large
   
   Case "cButton01": Size = Large
-  
-  Case "dButton01": Size = Small
-  Case "dButton02": Size = Small
-  Case "dButton03": Size = Small
-  Case "dButton04": Size = Small
-  Case "dButton05": Size = Small
-  Case "dButton06": Size = Small
-  Case "dButton07": Size = Small
-  Case "dButton08": Size = Small
-  Case "dButton09": Size = Small
   
   Case "eButton01": Size = Large
   
@@ -145,7 +108,7 @@ End Sub
 Sub RunMacro(control As IRibbonControl)
 'PURPOSE: Tell each button which macro subroutine to run when clicked
 
-Select Case control.Id
+Select Case control.id
   
   Case "aButton01": Application.Run "Button_Manager", "check_server_status"
   Case "aButton02": Application.Run "Button_Manager", "set_api_key"
@@ -177,7 +140,7 @@ End Sub
 Sub GetScreentip(control As IRibbonControl, ByRef Screentip)
 'PURPOSE: Display a specific macro description when the mouse hovers over a button
 
-Select Case control.Id
+Select Case control.id
   
   Case "aButton01": Screentip = "Check RavenPack server Status"
   Case "aButton02": Screentip = "Insert your API_KEY"
@@ -201,6 +164,34 @@ Select Case control.Id
   
   Case "fButton01": Screentip = "Help for RavenPack functions"
   
+  Case "dropDown": Screentip = "Select Ravenpack Product Type"
+  
 End Select
 
 End Sub
+
+Sub GetSelectedItemID(control As IRibbonControl, ByRef itemID As Variant)
+    If IsEmpty(mCurrentItemID) Then
+        mCurrentItemID = "item1"
+    End If
+    itemID = mCurrentItemID
+    prodType = "item1"
+End Sub
+
+
+'' Definition of GetTheSelectedItemInDropDown which gets the selected item of the dropdown
+' Sub GetTheSelectedItemInDropDown(control As IRibbonControl, id As String, index As Integer)
+'    If control.id = "dropDown" Then
+'        prodType = id
+'    End If
+' End Sub
+'
+'
+
+'Definition for SetTheSelectedItemInDropDown which sets the value in the dropdown from the global variable
+' Sub GetSelectedItemID(ByVal control As IRibbonControl, ByRef itemID As Variant)
+'    If control.id = "dropDown" Then
+'        itemID = "item1"
+'        prodType = "item1"
+'    End If
+' End Sub
