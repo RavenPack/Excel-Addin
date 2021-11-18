@@ -15,6 +15,8 @@ Private Sub Workbook_Open()
     
     Verify_Perm
     
+    On Error Resume Next
+    
     Application.MacroOptions _
         macro:="RPGetDailyEntitySentiment", _
         Description:="Return the 91-day sentiment strength for an entity on a particular day", _
@@ -87,7 +89,11 @@ Private Sub Workbook_Open()
                                     "The time zone that the datetime is in for the request. UTC by default")
                                     
                     
+    On Error GoTo 0
+
 End Sub
+
+
 
 
 
